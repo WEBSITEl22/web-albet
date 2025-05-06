@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Bayar Sekarang - Demo QRIS</title>
+  <style>
+    /* Semua CSS kamu tetap sama... */
+    body {
+      font-family: sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f8f9fa;
+      position: relative;
+    }
+
+    header {
+      background: #0d6efd;
+      color: white;
+      padding: 1rem;
+      text-align: center;
+      animation: slideIn 1s ease-out forwards;
+    }
+
+    @keyframes slideIn {
+      from { transform: translateY(-50px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 2rem auto;
+      padding: 1rem;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .product {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      padding: 1rem;
+      border: 1px solid #dee2e6;
+      border-radius: 8px;
+    }
+
+    .btn {
+      background: #198754;
+      color: white;
+      padding: 0.75rem 1.25rem;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: transform 0.3s ease;
+    }
+
+    .btn:hover {
+      background: #157347;
+      transform: scale(1.1);
+    }
+
+    .qris-modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.6);
+      justify-content: center;
+      align-items: center;
+      animation: fadeInModal 0.5s ease-out forwards;
+    }
+
+    @keyframes fadeInModal {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .qris-content {
+      background: white;
+      padding: 2rem;
+      border-radius: 12px;
+      text-align: center;
+      width: 90%;
+      max-width: 400px;
+      transition: 0.2s;
+    }
+
+    .shake {
+      animation: shake 0.4s;
+    }
+
+    @keyframes shake {
+      0% { transform: translateX(0); }
+      25% { transform: translateX(-8px); }
+      50% { transform: translateX(8px); }
+      75% { transform: translateX(-8px); }
+      100% { transform: translateX(0); }
+    }
+
+    .success-animation {
+      animation: popIn 0.6s ease-out forwards;
+      font-size: 1.5rem;
+      color: #28a745;
+      margin-top: 1rem;
+    }
+
+    @keyframes popIn {
+      0% { opacity: 0; transform: scale(0.7); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+
+    .qris-content img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 8px;
+      animation: bounceImage 2s infinite;
+    }
+
+    @keyframes bounceImage {
+      0% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+      100% { transform: translateY(0); }
+    }
+
+    .close-btn {
+      background: #dc3545;
+      margin-top: 1rem;
+    }
+
+    .whatsapp-btn {
+      background-color: #25D366;
+      margin-top: 1rem;
+    }
+
+    input {
+      padding: 0.5rem;
+      margin-top: 0.5rem;
+      width: 100%;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+
+    #welcomeMessage {
+      text-align: center;
+      font-size: 1.3rem;
+      font-weight: bold;
+      color: #0d6efd;
+      display: none;
+      margin-top: 1rem;
+      animation: fadeIn 1.2s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+      from {opacity: 0; transform: translateY(-10px);}
+      to {opacity: 1; transform: translateY(0);}
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Pembayaran Melalui QRIS</h1>
+</header>
+
+<div id="welcomeMessage">Selamat Datang di Halaman Pembayaran QRIS!</div>
+
+<!-- Username Form -->
+<div class="container" id="usernameContainer">
+  <h2>Masukkan Username Anda</h2>
+  <input type="text" id="usernameInput" placeholder="Username bebas..." />
+  <button class="btn" onclick="submitUsername()">Masuk</button>
+</div>
+
+<!-- Konten utama -->
+<div class="container" id="mainContent" style="display: none;">
+  <h2>Produk Kami</h2>
+  <div class="product">
+    <div>
+      <strong>Aplikasi Teleport</strong><br>
+      Rp 1.000 Khusus 5 Orang
+    </div>
+    <button class="btn" onclick="openQRIS()">Bayar Sekarang</button>
+  </div>
+
+  <a href="https://wa.me/6289662626560?text=Ini%20Bukti%20Tf%20Nya,%20password%20Nya%20Apanih?" target="_blank">
+    <button class="btn whatsapp-btn">Mau Pw? Pencet ini (wjib ss bukti tf)</button>
+  </a>
+</div>
+
+<!-- Suara -->
+<audio id="errorSound" src="https://www.myinstants.com/media/sounds/windows-error.mp3"></audio>
+<audio id="successSound" src="https://www.myinstants.com/media/sounds/success.mp3"></audio>
+<audio id="sirenSound" src="https://www.myinstants.com/media/sounds/police-siren.mp3"></audio>
+<audio id="welcomeSound" src="https://www.myinstants.com/media/sounds/anime-wow-sound-effect.mp3"></audio>
+
+<!-- Modal QRIS -->
+<div class="qris-modal" id="qrisModal">
+  <div class="qris-content" id="qrisContent">
+    <h2>Scan QRIS untuk Bayar</h2>
+    <img src="https://g.top4top.io/p_34121qjxk0.png" alt="QRIS Code"/>
+    <p>Silakan scan dengan DANA, GoPay, OVO, dll.</p>
+    <button class="btn close-btn" onclick="closeQRIS()">Tutup</button>
+
+    <input type="password" id="downloadPassword" placeholder="Masukkan password">
+    <div id="captchaBox"></div>
+    <input type="text" id="captchaInput" placeholder="Jawaban captcha">
+    <button class="btn" onclick="checkAccess()">Akses Link</button>
+
+    <p id="feedback" style="color: red; display: none;"></p>
+    <p id="countdown" style="font-weight: bold; color: green; display: none;"></p>
+    <p id="successMessage" class="success-animation" style="display:none;">Selamat! Akses berhasil :)</p>
+  </div>
+</div>
+
+<script>
+  let attemptCount = 0;
+  const maxAttempts = 3;
+  let captchaAnswer;
+
+  function submitUsername() {
+    const username = document.getElementById("usernameInput").value.trim();
+
+    if (username === "") {
+      alert("Silakan masukkan username terlebih dahulu.");
+      return;
+    }
+
+    const usedUsernames = JSON.parse(localStorage.getItem("usedUsernames")) || [];
+
+    if (usedUsernames.includes(username)) {
+      alert("Username sudah digunakan. Silakan pilih yang lain.");
+      return;
+    }
+
+    usedUsernames.push(username);
+    localStorage.setItem("usedUsernames", JSON.stringify(usedUsernames));
+
+    document.getElementById("usernameContainer").style.display = "none";
+    document.getElementById("mainContent").style.display = "block";
+    document.getElementById("welcomeMessage").innerText = `Selamat datang, ${username}!`;
+    document.getElementById("welcomeMessage").style.display = "block";
+    document.getElementById('welcomeSound').play().catch(() => {});
+  }
+
+  function openQRIS() {
+    document.getElementById('welcomeSound').play().catch(() => {});
+    document.getElementById('qrisModal').style.display = 'flex';
+    document.getElementById('feedback').style.display = 'none';
+    document.getElementById('downloadPassword').value = '';
+    document.getElementById('captchaInput').value = '';
+    document.getElementById('successMessage').style.display = 'none';
+    generateCaptcha();
+  }
+
+  function closeQRIS() {
+    document.getElementById('qrisModal').style.display = 'none';
+  }
+
+  function generateCaptcha() {
+    const a = Math.floor(Math.random() * 10) + 1;
+    const b = Math.floor(Math.random() * 10) + 1;
+    captchaAnswer = a + b;
+    document.getElementById('captchaBox').innerHTML = `<p>Berapakah hasil dari ${a} + ${b}?</p>`;
+  }
+
+  function checkAccess() {
+    const inputPassword = document.getElementById('downloadPassword').value;
+    const inputCaptcha = parseInt(document.getElementById('captchaInput').value);
+    const correctPassword = "224400";
+    const feedback = document.getElementById('feedback');
+    const qrisContent = document.getElementById('qrisContent');
+
+    if (attemptCount >= maxAttempts) {
+      feedback.innerText = "Akses diblokir. Terlalu banyak percobaan.";
+      feedback.style.display = 'block';
+      document.getElementById('sirenSound').play();
+      document.body.style.backgroundColor = 'red';
+      return;
+    }
+
+    if (inputPassword !== correctPassword) {
+      feedback.innerText = "❌ Password salah.";
+      feedback.style.display = 'block';
+      document.getElementById('errorSound').play();
+      qrisContent.classList.add('shake');
+      setTimeout(() => qrisContent.classList.remove('shake'), 500);
+      attemptCount++;
+      return;
+    }
+
+    if (inputCaptcha !== captchaAnswer) {
+      feedback.innerText = "Captcha salah.";
+      feedback.style.display = 'block';
+      attemptCount++;
+      return;
+    }
+
+    feedback.style.display = 'none';
+    document.getElementById('successSound').play();
+    document.getElementById('successMessage').style.display = 'block';
+    startCountdown();
+  }
+
+  function startCountdown() {
+    let countdown = 5;
+    const countdownEl = document.getElementById('countdown');
+    countdownEl.style.display = 'block';
+    countdownEl.innerText = `Akses akan diberikan dalam ${countdown} detik...`;
+
+    const timer = setInterval(() => {
+      countdown--;
+      countdownEl.innerText = `Akses akan diberikan dalam ${countdown} detik...`;
+      if (countdown === 0) {
+        clearInterval(timer);
+        window.location.href = "https://www.mediafire.com/file/v18fxjfuc84eb7c/TELEPORT_V4.zip/file?dkey=xznb12nm890&r=1326";
+      }
+    }, 1000);
+  }
+</script>
+
+</body>
+</html>
